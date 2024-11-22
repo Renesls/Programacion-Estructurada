@@ -1,65 +1,126 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using Perros;
 
 namespace WindowsFormsApp2
 {
     public partial class Paciente : UserControl
     {
+        private List<Perro> perros = new List<Perro>();
+        private int siguienteId = 1;
 
-        String[] Names = new string[100];
-        String[] Apellido = new string[100];
-        String[] fechaNacimiento = new string[100];
-        String[] Genero = new string[100];
-        String[] Departamento = new string[100];
-        String[] Consulta = new string[100];
-        String[] Alergias = new string[100];
-
-        int currentIndex = 0;
         public Paciente()
         {
             InitializeComponent();
+            CargarDatosPerros();
+            ActualizarLabelId();
+        }
+
+        private void ActualizarLabelId()
+        {
+            label4.Text = $"ID: {siguienteId}";
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            if (currentIndex < Names.Length)
+            try
             {
-                Names[currentIndex] = textBox1.Text;
-                Apellido[currentIndex] = textBox2.Text;
-                fechaNacimiento[currentIndex] = dtpFechaRegistro.Value.ToShortDateString(); 
-                Genero[currentIndex] = textBox4.Text;
-                Departamento[currentIndex] = textBox5.Text;
-                Consulta[currentIndex] = comboBox1.SelectedItem?.ToString();
-                Alergias[currentIndex] = richTextBox1.Text;
+                Perro nuevoPerro = new Perro
+                {
+                    ID = siguienteId++,
+                    Nombre = textBox1.Text.Trim(),
+                    Raza = textBox4.Text.Trim(),
+                    Dueño = textBox2.Text.Trim(),
+                    Telefono = textBox5.Text.Trim(),
+                    Fecha_De_Nacimiento = dtpFechaRegistro.Value.ToString("dd/MM/yyyy"),
+                    Nota = richTextBox1.Text.Trim()
+                };
 
-                currentIndex++;
-
-                textBox1.Clear();
-                textBox2.Clear();
-                textBox4.Clear();
-                textBox5.Clear();
-                comboBox1.SelectedIndex = -1;
-                richTextBox1.Clear();
-
-                MessageBox.Show("Información guardada correctamente.");
+                perros.Add(nuevoPerro);
+                GuardarDatosPerros();
+                LimpiarFormulario();
+                ActualizarLabelId();
+                MessageBox.Show("Perro registrado con éxito.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("No hay más espacio para guardar información.");
+                MessageBox.Show($"Error al registrar el perro: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
-            LlenarDataGridView();
-
         }
 
-        private void label7_Click(object sender, EventArgs e)
+        private void LimpiarFormulario()
+        {
+            textBox1.Clear();
+            textBox2.Clear();
+            textBox4.Clear();
+            textBox5.Clear();
+            richTextBox1.Clear();
+            dtpFechaRegistro.Value = DateTime.Now;
+            ActualizarLabelId();
+        }
+
+        private void GuardarDatosPerros()
+        {
+            try
+            {
+                using (StreamWriter writer = new StreamWriter("perros.txt", append: true))
+                {
+                    var nuevosPerros = perros.Where(p => p.ID >= siguienteId - 1).ToList();
+                    foreach (var perro in nuevosPerros)
+                    {
+                        writer.WriteLine($"{perro.ID},{perro.Nombre},{perro.Raza},{perro.Dueño},{perro.Telefono},{perro.Fecha_De_Nacimiento},{perro.Nota}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al guardar los datos: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void CargarDatosPerros()
+        {
+            if (File.Exists("perros.txt"))
+            {
+                try
+                {
+                    using (StreamReader reader = new StreamReader("perros.txt"))
+                    {
+                        string line;
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            var parts = line.Split(',');
+                            if (parts.Length == 7)
+                            {
+                                perros.Add(new Perro
+                                {
+                                    ID = int.Parse(parts[0]),
+                                    Nombre = parts[1],
+                                    Raza = parts[2],
+                                    Dueño = parts[3],
+                                    Telefono = parts[4],
+                                    Fecha_De_Nacimiento = parts[5],
+                                    Nota = parts[6]
+                                });
+
+                                siguienteId = Math.Max(siguienteId, int.Parse(parts[0]) + 1);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al cargar los datos: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+    
+
+
+    private void label7_Click(object sender, EventArgs e)
         {
 
         }
@@ -75,7 +136,6 @@ namespace WindowsFormsApp2
             textBox2.Clear();
             textBox4.Clear();
             textBox5.Clear();
-            comboBox1.SelectedIndex = -1;
             richTextBox1.Clear();
         }
 
@@ -155,18 +215,10 @@ namespace WindowsFormsApp2
         {
 
         }
-        private void LlenarDataGridView()
-        {
-            dataGridView1.Rows.Clear();
-
-            for (int i = 0; i < currentIndex; i++)
-            {
-                dataGridView1.Rows.Add(Names[i], Apellido[i], fechaNacimiento[i], Genero[i], Departamento[i], Consulta[i], Alergias[i]);
-            }
-        }
 
 
-        private void dataGridView1_CellContentClick_1(object sender, DataGridViewCellEventArgs e)
+
+        private void Paciente_Load(object sender, EventArgs e)
         {
 
         }
